@@ -1,0 +1,104 @@
+[
+  {
+    "property": "mod.zenhush.display",
+    "label": "Show background-tab toast",
+    "type": "dropdown",
+    "options": [
+      { "label": "Enabled", "value": "flex" },
+      { "label": "Disabled (fully silent)", "value": "none" }
+    ],
+    "defaultValue": "flex"
+  },
+  {
+    "property": "mod.zenhush.opacity",
+    "label": "Toast opacity",
+    "type": "dropdown",
+    "options": [
+      { "label": "100%", "value": "1" },
+      { "label": "85%", "value": "0.85" },
+      { "label": "65%", "value": "0.65" },
+      { "label": "45%", "value": "0.45" }
+    ],
+    "defaultValue": "0.85"
+  },
+  {
+    "property": "mod.zenhush.background_color",
+    "label": "Background color",
+    "type": "dropdown",
+    "options": [
+      { "label": "Dark glass", "value": "rgba(20, 20, 20, 0.55)" },
+      { "label": "Light glass", "value": "rgba(255, 255, 255, 0.55)" },
+      { "label": "Solid black", "value": "rgba(0, 0, 0, 0.92)" },
+      { "label": "Accent tint", "value": "var(--zen-primary-color)" }
+    ],
+    "defaultValue": "rgba(20, 20, 20, 0.55)"
+  },
+  {
+    "property": "mod.zenhush.blur",
+    "label": "Background blur",
+    "type": "dropdown",
+    "options": [
+      { "label": "None", "value": "0px" },
+      { "label": "Subtle", "value": "10px" },
+      { "label": "Standard", "value": "18px" },
+      { "label": "Heavy", "value": "28px" }
+    ],
+    "defaultValue": "18px"
+  },
+  {
+    "property": "mod.zenhush.border_radius",
+    "label": "Corner rounding",
+    "type": "dropdown",
+    "options": [
+      { "label": "Square", "value": "2px" },
+      { "label": "Soft", "value": "8px" },
+      { "label": "Rounded", "value": "12px" },
+      { "label": "Pill", "value": "999px" }
+    ],
+    "defaultValue": "12px"
+  },
+  {
+    "property": "mod.zenhush.font_size",
+    "label": "Text size",
+    "type": "dropdown",
+    "options": [
+      { "label": "Small", "value": "10px" },
+      { "label": "Medium", "value": "11px" },
+      { "label": "Large", "value": "13px" }
+    ],
+    "defaultValue": "11px"
+  },
+  {
+    "property": "mod.zenhush.max_width",
+    "label": "Max width",
+    "type": "dropdown",
+    "options": [
+      { "label": "Compact (160px)", "value": "160px" },
+      { "label": "Standard (220px)", "value": "220px" },
+      { "label": "Wide (300px)", "value": "300px" }
+    ],
+    "defaultValue": "220px"
+  },
+  {
+    "property": "mod.zenhush.spacing_multiplier",
+    "label": "Distance from screen edge",
+    "type": "dropdown",
+    "options": [
+      { "label": "Tight", "value": "0.5" },
+      { "label": "Normal", "value": "1" },
+      { "label": "Loose", "value": "2" }
+    ],
+    "defaultValue": "1"
+  },
+  {
+    "property": "mod.zenhush.fade_duration",
+    "label": "Fade speed",
+    "type": "dropdown",
+    "options": [
+      { "label": "Instant", "value": "0.05s" },
+      { "label": "Fast", "value": "0.15s" },
+      { "label": "Slow", "value": "0.35s" }
+    ],
+    "defaultValue": "0.15s"
+  }
+]

@@ -1,0 +1,46 @@
+/* ==========================================================================
+   Zen Hush — background-tab toast declutter mod
+   Targets Zen Browser's `hbox.zen-toast` (the element behind
+   `zen.view.compact.show-background-tab-toast`)
+
+   NOTE: earlier versions of this file targeted `#zen-toast-container` and
+   `.zen-toast .description`, based on other public mods. Confirmed via
+   live inspection (Browser Toolbox) against this build that the real
+   markup is flatter: `hbox.zen-toast` directly, containing a plain
+   unclassed `<label>` for the text and a `#zen-open-background-tab-button`.
+   There is no `#zen-toast-container` wrapper and no `.description` class
+   in this version — selectors below were rewritten to match reality.
+   ========================================================================== */
+
+.zen-toast {
+  display: var(--mod-zenhush-display, flex) !important;
+  transition: opacity var(--mod-zenhush-fade_duration, 0.15s) ease !important;
+  opacity: var(--mod-zenhush-opacity, 1) !important;
+  background: var(--mod-zenhush-background_color, rgba(20, 20, 20, 1)) !important;
+  backdrop-filter: blur(var(--mod-zenhush-blur, 0px)) !important;
+  border-radius: var(--mod-zenhush-border_radius, 12px) !important;
+  padding: var(--mod-zenhush-padding, 6px 10px) !important;
+  max-width: var(--mod-zenhush-max_width, 260px) !important;
+  box-shadow: var(--mod-zenhush-shadow, 0 4px 14px rgba(0, 0, 0, 0.25)) !important;
+}
+
+.zen-toast label {
+  font-size: var(--mod-zenhush-font_size, 11px) !important;
+  opacity: 0.9 !important;
+}
+
+.zen-toast:hover {
+  opacity: 1 !important;
+  background: var(--mod-zenhush-background_hover, rgba(20, 20, 20, 1)) !important;
+}
+
+.zen-toast #zen-open-background-tab-button {
+  border-radius: var(--mod-zenhush-border_radius, 12px) !important;
+}
+
+/* Fully silent mode: set "mod.zenhush.display" -> "none" in the mod's
+   settings panel (Preferences -> Zen Marketplace -> Zen Hush) instead of
+   uninstalling the whole mod. Scheduled/per-site Do Not Disturb rules live
+   in the companion WebExtension in ../extension — CSS alone can't read
+   time or per-site state, so this mod only controls the *look* of the
+   toast, not *when* it fires. */
