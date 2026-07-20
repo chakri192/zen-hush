@@ -1,68 +1,73 @@
 # zen-hush
 
-Notification decluttering for [Zen Browser](https://zen-browser.app): a CSS mod that restyles the built-in background-tab toast, and a companion WebExtension that adds scheduled Do Not Disturb hours and per-site muting for the web `Notification` API. Use either independently or together.
+Notification decluttering for [Zen Browser](https://zen-browser.app).
+
+Two independent pieces:
+- **`mod/`** — restyles the built-in background-tab toast (opacity, blur, corner rounding, size)
+- **`extension/`** — adds scheduled Do Not Disturb hours and per-site muting for the web `Notification` API
+
+Use either on its own, or both together.
+
+![screenshot](mod/screenshot.png)
 
 ---
 
-## Why two parts
+## Why two pieces, not one
 
-Zen Mods are CSS + a JSON preferences manifest — no JavaScript, no access to the clock, no access to which site is asking. That covers *how a toast looks*, but not *whether it should fire at 2am* or *whether this one site is allowed to interrupt you*. So the logic lives in a separate WebExtension instead.
+Zen Mods are just CSS + a settings manifest — no JavaScript. Fine for *how a toast looks*, useless for *whether it should fire at 2am*. So the two concerns are split:
 
-| | `mod/` | `extension/` |
-|---|---|---|
-| Controls | Appearance of Zen's own background-tab toast | Whether the web page's `Notification` API fires at all |
-| Built with | `chrome.css` + `preferences.json` | Firefox WebExtension (Manifest V3) |
-| Install via | Drop into your profile's `chrome/` folder, or Zen Marketplace once submitted | `about:debugging` (temporary) or AMO once packaged |
-| Logic | None — pure CSS custom properties | DND schedule, per-site mute list, stored in `browser.storage.local` |
+**`mod/`** — pure CSS, controls appearance only, installed by dropping a file in your profile's `chrome/` folder.
+
+**`extension/`** — a real WebExtension, controls whether notifications fire at all, installed through `about:debugging`.
 
 ---
 
-## mod/ — toast declutter
+## mod — toast declutter
 
-Targets `hbox.zen-toast`, the element behind `zen.view.compact.show-background-tab-toast`. Confirmed via live inspection in the Browser Toolbox — public mods online reference `#zen-toast-container` / `.description`, but this Zen build's actual markup is flatter than that (no wrapper container, no `.description` class), so the selectors here were fixed to match what's really on screen.
+Targets `hbox.zen-toast`, the element behind `zen.view.compact.show-background-tab-toast`.
 
-| Setting | Options | CSS variable |
-|---|---|---|
-| Show toast at all | enabled / fully off | `--mod-zenhush-display` |
-| Opacity | 100% / 85% / 65% / 45% | `--mod-zenhush-opacity` |
-| Background | dark glass, light glass, solid black, accent tint | `--mod-zenhush-background_color` |
-| Blur | none, subtle, standard, heavy | `--mod-zenhush-blur` |
-| Corner rounding | square, soft, rounded, pill | `--mod-zenhush-border_radius` |
-| Text size | small, medium, large | `--mod-zenhush-font_size` |
-| Max width | compact, standard, wide | `--mod-zenhush-max_width` |
-| Distance from edge | tight, normal, loose | `--mod-zenhush-spacing_multiplier` |
-| Fade speed | instant, fast, slow | `--mod-zenhush-fade_duration` |
+> Note: this selector was confirmed by live-inspecting the toast in the Browser Toolbox. Other public Zen mods reference `#zen-toast-container` / `.description` — this build's actual markup is flatter than that, so don't copy those selectors blind.
 
-Current defaults are solid (opacity `1`, blur `0px`) rather than glassy — tuned that way after testing looked better against a busy desktop. Adjust the fallback values in `chrome.css` directly, or the pref dropdowns once installed through the Marketplace.
+Everything below is a CSS variable, adjustable via the Marketplace settings panel once installed (or just edit the fallback value in `chrome.css` directly):
 
-## extension/ — Do Not Disturb + site muting
+- **Show toast at all** — on / fully off
+- **Opacity** — 100 / 85 / 65 / 45%
+- **Background** — dark glass, light glass, solid black, accent tint
+- **Blur** — none, subtle, standard, heavy
+- **Corner rounding** — square, soft, rounded, pill
+- **Text size** — small, medium, large
+- **Max width** — compact, standard, wide
+- **Distance from edge** — tight, normal, loose
+- **Fade speed** — instant, fast, slow
 
-Wraps `window.Notification` in the page itself so pages can't interrupt during scheduled quiet hours or on muted sites, while leaving everything else untouched.
+Current defaults: solid background, no blur — looked cleaner against a busy desktop than the glassy look it originally shipped with.
 
-1. `inject.js` runs in the page's MAIN world, replaces `window.Notification` with a wrapper that either passes through or returns an inert stand-in.
-2. `bridge.js` runs in the extension's isolated world and relays `postMessage` traffic between the page and the background script — MAIN-world scripts have no `browser.*` API access.
-3. `background.js` owns settings in `browser.storage.local` (DND start/end, muted-site list) and answers "suppress or not?" for each page that asks.
-4. `options.html` / `options.js` is the popup: toggle DND, set start/end time (overnight ranges like 22:00 → 07:00 work), mute the current tab, unmute from a list.
+## extension — Do Not Disturb + site muting
+
+Wraps `window.Notification` in the page so pages can't interrupt during quiet hours or on muted sites.
+
+1. **`inject.js`** — runs in the page's MAIN world, swaps `window.Notification` for a wrapper
+2. **`bridge.js`** — relays messages between the page and the background script (MAIN-world scripts can't call `browser.*` directly)
+3. **`background.js`** — owns the DND schedule and mute list, answers "suppress or not?"
+4. **`options.html`/`options.js`** — the popup UI: toggle DND, set hours (overnight ranges like 22:00 → 07:00 work fine), mute/unmute sites
 
 ---
 
 ## Requirements
 
-- [Zen Browser](https://zen-browser.app), a recent build (tracks Firefox ~150+)
-- `toolkit.legacyUserProfileCustomizations.stylesheets` set to `true` in `about:config`, for the mod
+- [Zen Browser](https://zen-browser.app), a recent build
+- `toolkit.legacyUserProfileCustomizations.stylesheets` → `true` in `about:config` (for the mod)
 
 ---
 
-## Installation
-
-### mod
+## Installing the mod
 
 ```zsh
 PROFILE=~/Library/Application\ Support/zen/Profiles/<your-profile>.default
 cp mod/chrome.css "$PROFILE/chrome/zen-hush.css"
 ```
 
-Then add to `userChrome.css` in that same folder (or wherever your existing `@import` chain lives):
+Add this to `userChrome.css` in the same folder:
 
 ```css
 @import url("zen-hush.css");
@@ -70,7 +75,7 @@ Then add to `userChrome.css` in that same folder (or wherever your existing `@im
 
 Fully quit Zen (`Cmd+Q`) and reopen.
 
-### extension (temporary, for local testing)
+## Installing the extension
 
 ```
 about:debugging#/runtime/this-firefox → Load Temporary Add-on → select extension/manifest.json
@@ -80,12 +85,17 @@ about:debugging#/runtime/this-firefox → Load Temporary Add-on → select exten
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| Toast still looks stock after restart | Confirm `toolkit.legacyUserProfileCustomizations.stylesheets` is `true`, confirm the `@import` line is correct and not commented out, and confirm you fully quit (`Cmd+Q`) rather than just closing the window |
-| CSS loads but nothing changes | Selectors may not match your Zen version — inspect the live toast via the Browser Toolbox (`Cmd+Alt+Shift+I`) and check `.zen-toast`'s actual structure |
-| Toast disappears before you can inspect it | Use a `MutationObserver` in the Browser Toolbox console to log `outerHTML` the instant it's added, instead of trying to click it live |
-| Extension doesn't suppress a site's notifications | Rules load asynchronously on page load — a `Notification` fired in the first few milliseconds can slip through; reload the page after muting |
+**Toast still looks stock after restart**
+Check the stylesheets pref is `true`, the `@import` line isn't commented out, and you fully quit with `Cmd+Q` rather than just closing the window.
+
+**CSS loads but nothing visibly changes**
+Your Zen build's markup may differ. Inspect the live toast via the Browser Toolbox (`Cmd+Alt+Shift+I`) and check `.zen-toast`'s actual structure.
+
+**Toast disappears before you can inspect it**
+Skip trying to click it live — use a `MutationObserver` in the Browser Toolbox console to log `outerHTML` the instant the element is added.
+
+**Extension doesn't suppress a site's notifications**
+Rules load asynchronously on page load, so a `Notification` fired in the first few milliseconds can slip through. Reload the page after muting a site.
 
 ---
 
@@ -94,14 +104,15 @@ about:debugging#/runtime/this-firefox → Load Temporary Add-on → select exten
 ```
 zen-hush/
 ├── mod/
-│   ├── chrome.css          # the actual restyling
-│   ├── preferences.json    # Marketplace settings panel definitions
+│   ├── chrome.css
+│   ├── preferences.json
+│   ├── screenshot.png
 │   └── README.md
 ├── extension/
 │   ├── manifest.json
-│   ├── background.js       # settings + DND/mute logic
-│   ├── bridge.js            # isolated-world relay
-│   ├── inject.js            # MAIN-world Notification wrapper
+│   ├── background.js
+│   ├── bridge.js
+│   ├── inject.js
 │   ├── options.html / options.js
 │   └── README.md
 ├── LICENSE
@@ -112,7 +123,7 @@ zen-hush/
 
 ## Status
 
-Functional. `mod/` selectors confirmed against a live Zen install rather than guessed from other public mods. Not yet submitted to the Zen Marketplace or AMO.
+Functional. Not yet submitted to the Zen Marketplace or AMO.
 
 ## License
 
