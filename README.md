@@ -8,7 +8,9 @@ Two independent pieces:
 
 Use either on its own, or both together.
 
-![screenshot](mod/screenshot.png)
+<p align="center">
+  <img src="mod/screenshot.png" alt="zen-hush toast" width="600" />
+</p>
 
 ---
 

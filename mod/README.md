@@ -2,9 +2,9 @@
 
 Restyles Zen Browser's built-in background-tab toast — the small popup behind `zen.view.compact.show-background-tab-toast`. Every visual property is a dropdown in the Marketplace settings panel, no manual CSS editing.
 
-<div align="center">
+<p align="center">
   <img src="screenshot.png" alt="Zen Hush toast" width="500" />
-</div>
+</p>
 
 ## What it changes
 
