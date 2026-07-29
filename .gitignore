@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.env
+.env.local
+dist/
+build/
+.cache/
