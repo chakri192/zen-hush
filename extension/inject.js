@@ -9,13 +9,26 @@
 
   let rules = { dndActive: false, muted: false };
   let rulesLoaded = false;
+  // Notifications fired before the async rules round-trip returns are parked
+  // here, then flushed once we actually know whether to suppress them --
+  // otherwise anything fired in that sub-second window always slipped through.
+  const pending = [];
 
   window.addEventListener("message", (event) => {
     if (event.source !== window) return;
     if (event.data?.channel !== "zen-hush") return;
     if (event.data.type === "rules") {
       rules = event.data.rules;
+      const firstLoad = !rulesLoaded;
       rulesLoaded = true;
+      if (firstLoad) {
+        const suppress = rules.dndActive || rules.muted;
+        for (const held of pending.splice(0)) {
+          if (held._closed) continue;
+          // Only materialise the real notification if rules allow it.
+          if (!suppress) held._real = new OriginalNotification(held._title, held._options);
+        }
+      }
     }
   });
 
@@ -25,8 +38,15 @@
     constructor(title, options) {
       this._title = title;
       this._options = options || {};
-      this._suppressed = rules.dndActive || rules.muted;
+      this._closed = false;
 
+      if (!rulesLoaded) {
+        // Unknown yet: park it. When rules arrive it's either dropped or fired.
+        pending.push(this);
+        return;
+      }
+
+      this._suppressed = rules.dndActive || rules.muted;
       if (!this._suppressed) {
         this._real = new OriginalNotification(title, options);
         return this._real;
@@ -36,6 +56,7 @@
     }
 
     close() {
+      this._closed = true;  // if still parked, this stops it from firing on flush
       this._real?.close();
     }
     addEventListener() {}
