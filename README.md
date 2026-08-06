@@ -86,10 +86,6 @@ Temporary add-ons are cleared when the browser restarts; this isn't signed or on
 
 ## How the extension is put together
 
-<div align="center">
-<img src="docs/architecture.svg" width="840" alt="inject.js in the MAIN world, bridge.js in the isolated world, background.js holding settings — and the parked-notification race fix" />
-</div>
-
 Three scripts, because no single context can see everything it needs:
 
 **`inject.js` — MAIN world.** Runs in the page's own JavaScript context, the only place `window.Notification` can be replaced. In exchange it has no access to `browser.*` whatsoever.
@@ -138,7 +134,6 @@ zen-hush/
 │   ├── bridge.js           MAIN ↔ isolated relay
 │   ├── background.js       settings, quiet-hours logic, mute list
 │   └── options.html/.js    the popup
-├── docs/                   the diagram in this README
 └── LICENSE
 ```
 
