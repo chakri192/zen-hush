@@ -21,7 +21,7 @@ Two independent components: a CSS mod that restyles the background-tab toast, an
 
 ## Overview
 
-Zen Mods consist of CSS and a settings manifest, with no JavaScript. This is sufficient for controlling the appearance of a toast and insufficient for controlling whether it should appear at 2am. The two concerns are therefore implemented separately.
+Zen Mods are CSS and a settings manifest, with no JavaScript — sufficient for how a toast looks, insufficient for whether it should fire at 2am. The two concerns are therefore separate.
 
 | Component | Controls | Installation |
 |---|---|---|
@@ -40,11 +40,9 @@ Targets `hbox.zen-toast`, the element controlled by `zen.view.compact.show-backg
 
 > This selector was confirmed by inspecting a live toast in the Browser Toolbox. Other published Zen mods reference `#zen-toast-container` and `.description`; this build's markup is flatter, with no container wrapper and an unclassed `<label>` for the text. Verify against your own build rather than copying selectors.
 
-Every property is exposed as a CSS variable, adjustable from the Marketplace settings panel once installed, or by editing the fallback values in `chrome.css`:
+Every property is a CSS variable, adjustable from the Marketplace settings panel or by editing the fallbacks in `chrome.css`: visibility, opacity, background, blur radius, corner radius, text size, maximum width, edge offset, and fade duration.
 
-visibility · opacity (100 / 85 / 65 / 45%) · background (dark glass, light glass, solid, accent tint) · blur radius · corner radius · text size · maximum width · edge offset · fade duration
-
-The shipped defaults are a solid background with no blur, which reads more clearly against a detailed desktop than the original glass treatment.
+Shipped defaults are a solid background with no blur, which reads more clearly against a detailed desktop than the original glass treatment.
 
 ### Installation
 
@@ -63,11 +61,9 @@ Enable `toolkit.legacyUserProfileCustomizations.stylesheets`, then quit Zen enti
 
 ## extension — quiet hours and per-site muting
 
-The mod can restyle a toast but cannot prevent a notification. Doing so requires intercepting the call between the page and the browser, which requires an extension.
+Restyling a toast cannot prevent a notification; that requires intercepting the call between page and browser.
 
-zen-hush replaces `window.Notification` with a wrapper of equivalent shape. During configured quiet hours, or on a muted host, constructing one produces an inert object rather than a system notification. Because the interface is preserved, page scripts that assign `.onclick` or call `.close()` continue to function.
-
-Quiet hours wrap across midnight, so a range of `22:00 → 07:00` behaves as expected.
+zen-hush replaces `window.Notification` with a wrapper of equivalent shape. During quiet hours, or on a muted host, constructing one yields an inert object rather than a system notification. The interface is preserved, so page scripts assigning `.onclick` or calling `.close()` continue to work. Quiet hours wrap across midnight, so `22:00 → 07:00` behaves as expected.
 
 ### Installation
 
@@ -81,17 +77,17 @@ Temporary add-ons are removed when the browser restarts. The extension is not ye
 
 Three scripts, because no single execution context has access to everything required.
 
-**`inject.js` — MAIN world.** Executes in the page's own JavaScript context, the only place `window.Notification` can be replaced. It has no access to the `browser.*` APIs.
+| Script | Context | Role |
+|---|---|---|
+| `inject.js` | MAIN world | Replaces `window.Notification` — the only context where that is possible. No `browser.*` access |
+| `bridge.js` | Isolated world | Seventeen lines relaying `postMessage` between page and extension |
+| `background.js` | Extension | Holds settings; answers whether a host is currently silenced |
 
-**`bridge.js` — isolated world.** Seventeen lines relaying `postMessage` from the page to `browser.runtime` and back. It exists solely to span that boundary.
+### The initialisation race
 
-**`background.js`.** Holds the settings and answers a single question: whether the given host is currently silenced. Quiet-hours evaluation and the muted-host list are both resolved here, so page scripts never observe the configuration.
+Rule retrieval is asynchronous, but a page can construct a notification at `document_start`, before the response arrives. Notifications created in that window originally bypassed the filter entirely, which presented as intermittent failure.
 
-### Handling the initialisation race
-
-Rule retrieval is asynchronous, but a page may construct a notification at `document_start`, before the response arrives. Notifications created in that interval initially bypassed the filter entirely, which presented to the user as intermittent failure.
-
-The wrapper now queues any notification constructed before rules are available. When they arrive, queued entries are either dispatched or discarded according to the resolved rules. An entry that was closed while queued remains discarded, so a cancelled notification cannot reappear.
+The wrapper now queues anything constructed before rules load, then dispatches or discards each entry once they arrive. An entry closed while queued stays discarded, so a cancelled notification cannot reappear.
 
 ## Troubleshooting
 
