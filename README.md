@@ -1,149 +1,127 @@
 <div align="center">
 
+<img src="mod/screenshot.png" alt="The restyled Zen background-tab toast" width="600" />
+
 # zen-hush
 
-**Notification decluttering for [Zen Browser](https://zen-browser.app).**
+**Notification management for [Zen Browser](https://zen-browser.app).**
 
-Restyle the background-tab toast. Silence the web `Notification` API on a schedule. Two independent pieces, either one on its own.
+Two independent components: a CSS mod that restyles the background-tab toast, and a WebExtension that suppresses web notifications on a schedule.
 
 <p>
   <img alt="Browser" src="https://img.shields.io/badge/Zen%20Browser-115%2B-1c1c1e?style=flat-square&logo=firefoxbrowser&logoColor=FF7139" />
   <img alt="Manifest" src="https://img.shields.io/badge/WebExtension-MV3-1c1c1e?style=flat-square" />
   <img alt="Mod" src="https://img.shields.io/badge/mod-pure%20CSS-1c1c1e?style=flat-square&logo=css3&logoColor=1572B6" />
-  <img alt="Dependencies" src="https://img.shields.io/badge/dependencies-none-1c1c1e?style=flat-square" />
   <img alt="License" src="https://img.shields.io/badge/license-MIT-1c1c1e?style=flat-square" />
 </p>
 
-<br />
-
-<img src="mod/screenshot.png" alt="The restyled Zen background-tab toast" width="600" />
-
 </div>
 
-<br />
-
 ---
 
-## Two pieces, on purpose
+## Overview
 
-Zen Mods are CSS plus a settings manifest — no JavaScript. That's plenty for deciding *how a toast looks*, and useless for deciding *whether it should fire at 2am*. So the two concerns live apart:
+Zen Mods consist of CSS and a settings manifest, with no JavaScript. This is sufficient for controlling the appearance of a toast and insufficient for controlling whether it should appear at 2am. The two concerns are therefore implemented separately.
 
-| | What it controls | How it installs |
+| Component | Controls | Installation |
 |---|---|---|
-| **`mod/`** | Appearance of Zen's built-in background-tab toast | Drop a file in your profile's `chrome/` folder |
-| **`extension/`** | Whether web notifications fire at all | Load through `about:debugging` |
+| **`mod/`** | Appearance of the built-in background-tab toast | Copy a file into the profile's `chrome/` directory |
+| **`extension/`** | Whether web notifications are delivered at all | Load through `about:debugging` |
 
-Use either. Use both. They don't know about each other.
+Either may be used independently.
 
----
+## Requirements
 
-## mod — toast declutter
+A recent Zen Browser build. The mod additionally requires `toolkit.legacyUserProfileCustomizations.stylesheets` set to `true` in `about:config`. The extension declares `strict_min_version` 115.
 
-Targets `hbox.zen-toast`, the element behind `zen.view.compact.show-background-tab-toast`.
+## mod — toast restyling
 
-> That selector was confirmed by inspecting a live toast in the Browser Toolbox. Other public Zen mods reference `#zen-toast-container` and `.description` — this build's markup is flatter than that, with no container wrapper and an unclassed `<label>` for the text. Don't copy those selectors blind; check your own build.
+Targets `hbox.zen-toast`, the element controlled by `zen.view.compact.show-background-tab-toast`.
 
-Every value below is a CSS variable, adjustable from the Marketplace settings panel once installed, or by editing the fallback in `chrome.css` directly:
+> This selector was confirmed by inspecting a live toast in the Browser Toolbox. Other published Zen mods reference `#zen-toast-container` and `.description`; this build's markup is flatter, with no container wrapper and an unclassed `<label>` for the text. Verify against your own build rather than copying selectors.
 
-**Show toast at all** · **Opacity** (100 / 85 / 65 / 45%) · **Background** (dark glass, light glass, solid black, accent tint) · **Blur** (none → heavy) · **Corner rounding** (square → pill) · **Text size** · **Max width** · **Distance from edge** · **Fade speed**
+Every property is exposed as a CSS variable, adjustable from the Marketplace settings panel once installed, or by editing the fallback values in `chrome.css`:
 
-Shipped defaults are a solid background and no blur — the glassy look it originally had disappeared into a busy desktop.
+visibility · opacity (100 / 85 / 65 / 45%) · background (dark glass, light glass, solid, accent tint) · blur radius · corner radius · text size · maximum width · edge offset · fade duration
 
-### Installing it
+The shipped defaults are a solid background with no blur, which reads more clearly against a detailed desktop than the original glass treatment.
 
-```zsh
+### Installation
+
+```sh
 PROFILE=~/Library/Application\ Support/zen/Profiles/<your-profile>.default
 cp mod/chrome.css "$PROFILE/chrome/zen-hush.css"
 ```
 
-Add to `userChrome.css` in that same folder:
+Add to `userChrome.css` in the same directory:
 
 ```css
 @import url("zen-hush.css");
 ```
 
-Set `toolkit.legacyUserProfileCustomizations.stylesheets` to `true` in `about:config`, then fully quit Zen with `Cmd+Q` — closing the window isn't enough — and reopen.
-
----
+Enable `toolkit.legacyUserProfileCustomizations.stylesheets`, then quit Zen entirely with `Cmd+Q` — closing the window is insufficient — and reopen.
 
 ## extension — quiet hours and per-site muting
 
-The mod can restyle a toast; it cannot stop a notification. Stopping one means getting between the page and the browser, which means an extension.
+The mod can restyle a toast but cannot prevent a notification. Doing so requires intercepting the call between the page and the browser, which requires an extension.
 
-`zen-hush` replaces `window.Notification` with a wrapper of the same shape. During quiet hours, or on a muted host, constructing one yields an inert stand-in instead of a real system notification — and because the interface is preserved, page scripts that set `.onclick` or call `.close()` carry on without throwing.
+zen-hush replaces `window.Notification` with a wrapper of equivalent shape. During configured quiet hours, or on a muted host, constructing one produces an inert object rather than a system notification. Because the interface is preserved, page scripts that assign `.onclick` or call `.close()` continue to function.
 
-Quiet hours wrap past midnight, so `22:00 → 07:00` behaves the way you'd expect instead of matching nothing.
+Quiet hours wrap across midnight, so a range of `22:00 → 07:00` behaves as expected.
 
-### Installing it
+### Installation
 
 ```
 about:debugging#/runtime/this-firefox → Load Temporary Add-on → extension/manifest.json
 ```
 
-Temporary add-ons are cleared when the browser restarts; this isn't signed or on AMO yet.
+Temporary add-ons are removed when the browser restarts. The extension is not yet signed or published to AMO.
 
----
+## Extension architecture
 
-## How the extension is put together
+Three scripts, because no single execution context has access to everything required.
 
-Three scripts, because no single context can see everything it needs:
+**`inject.js` — MAIN world.** Executes in the page's own JavaScript context, the only place `window.Notification` can be replaced. It has no access to the `browser.*` APIs.
 
-**`inject.js` — MAIN world.** Runs in the page's own JavaScript context, the only place `window.Notification` can be replaced. In exchange it has no access to `browser.*` whatsoever.
+**`bridge.js` — isolated world.** Seventeen lines relaying `postMessage` from the page to `browser.runtime` and back. It exists solely to span that boundary.
 
-**`bridge.js` — isolated world.** Seventeen lines whose entire job is relaying `postMessage` from the page to `browser.runtime` and back. It exists purely because of that split, and does nothing else.
+**`background.js`.** Holds the settings and answers a single question: whether the given host is currently silenced. Quiet-hours evaluation and the muted-host list are both resolved here, so page scripts never observe the configuration.
 
-**`background.js`.** Owns the settings and answers exactly one question: is this host silenced right now? The quiet-hours arithmetic and the muted-host list both live here, so the page never sees your configuration.
+### Handling the initialisation race
 
-### The race that made it feel unreliable
+Rule retrieval is asynchronous, but a page may construct a notification at `document_start`, before the response arrives. Notifications created in that interval initially bypassed the filter entirely, which presented to the user as intermittent failure.
 
-Fetching the rules is asynchronous, but a page can fire a notification at `document_start` — before the answer comes back. Early on, anything in that sub-second window escaped the filter entirely, which reads to a user as "it sometimes doesn't work."
+The wrapper now queues any notification constructed before rules are available. When they arrive, queued entries are either dispatched or discarded according to the resolved rules. An entry that was closed while queued remains discarded, so a cancelled notification cannot reappear.
 
-The wrapper now parks any notification constructed before the rules load. When they arrive, parked ones are either fired for real or dropped, according to what the rules turned out to say. One that was `close()`d while parked stays dropped, so a late cancellation can't resurface as a delayed pop-up.
-
----
-
-## Requirements
-
-A recent Zen Browser build. For the mod, `toolkit.legacyUserProfileCustomizations.stylesheets` set to `true`. For the extension, nothing further — Zen is Firefox-based, and the manifest declares `strict_min_version` 115.
-
----
-
-## When it doesn't work
+## Troubleshooting
 
 | Symptom | Cause |
 |---|---|
-| Toast still looks stock after restarting | The stylesheets pref isn't `true`, the `@import` is commented out, or Zen was closed rather than quit with `Cmd+Q` |
-| CSS loads, nothing changes | Your build's toast markup differs. Inspect it live with the Browser Toolbox (`Cmd+Alt+Shift+I`) and check what `.zen-toast` actually contains |
-| The toast vanishes before you can inspect it | Don't try to catch it by clicking. Attach a `MutationObserver` in the Browser Toolbox console and log `outerHTML` the moment the node appears |
-| A muted site still notifies | Check the host string matches — the mute list keys on `location.hostname` exactly, so `www.example.com` and `example.com` are separate entries |
-| Extension gone after a restart | Expected. Temporary add-ons don't persist; reload it from `about:debugging` |
+| Toast unchanged after restart | The stylesheets preference is not `true`, the `@import` is commented out, or Zen was closed rather than quit |
+| CSS loads but has no effect | The build's toast markup differs. Inspect it with the Browser Toolbox (`Cmd+Alt+Shift+I`) |
+| Toast disappears before inspection | Attach a `MutationObserver` in the Browser Toolbox console and log `outerHTML` on insertion |
+| A muted site still notifies | The mute list keys on `location.hostname` exactly, so `www.example.com` and `example.com` are separate entries |
+| Extension absent after restart | Expected behaviour for temporary add-ons; reload from `about:debugging` |
 
----
-
-## Layout
+## Project structure
 
 ```
 zen-hush/
 ├── mod/
-│   ├── chrome.css          .zen-toast, every value a CSS variable
-│   ├── preferences.json    the Marketplace settings schema
+│   ├── chrome.css          .zen-toast styling, fully variable-driven
+│   ├── preferences.json    Marketplace settings schema
 │   └── screenshot.png
-├── extension/
-│   ├── manifest.json       MV3, two content scripts — one per world
-│   ├── inject.js           the Notification wrapper + pending queue
-│   ├── bridge.js           MAIN ↔ isolated relay
-│   ├── background.js       settings, quiet-hours logic, mute list
-│   └── options.html/.js    the popup
-└── LICENSE
+└── extension/
+    ├── manifest.json       MV3, two content scripts — one per world
+    ├── inject.js           Notification wrapper and pending queue
+    ├── bridge.js           MAIN ↔ isolated relay
+    ├── background.js       Settings, quiet-hours logic, mute list
+    └── options.html/.js    Configuration interface
 ```
-
----
 
 ## Status
 
-Functional and in daily use. Not yet submitted to the Zen Marketplace or AMO, so the mod is a manual file copy and the extension is a temporary add-on.
-
----
+Functional and in daily use. Not yet submitted to the Zen Marketplace or AMO, so the mod is installed by file copy and the extension as a temporary add-on.
 
 ## License
 
