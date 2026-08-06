@@ -154,4 +154,4 @@ MIT — see [LICENSE](LICENSE).
 | | |
 |---|---|
 | [chakri192](https://github.com/chakri192) | Author |
-| Claude | AI pair programmer |
+| [aider](https://github.com/Aider-AI/aider) | AI pair programmer |
