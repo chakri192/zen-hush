@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Zen Hush",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Scheduled Do Not Disturb and per-site muting for the web Notification API. Companion to the Zen Hush toast mod.",
   "browser_specific_settings": {
     "gecko": {
       "id": "zen-hush@chakri192.github.io",
-      "strict_min_version": "115.0"
+      "strict_min_version": "128.0"
     }
   },
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab"],
   "background": {
     "scripts": ["background.js"]
   },

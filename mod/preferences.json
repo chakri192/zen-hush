@@ -80,17 +80,6 @@
     "defaultValue": "220px"
   },
   {
-    "property": "mod.zenhush.spacing_multiplier",
-    "label": "Distance from screen edge",
-    "type": "dropdown",
-    "options": [
-      { "label": "Tight", "value": "0.5" },
-      { "label": "Normal", "value": "1" },
-      { "label": "Loose", "value": "2" }
-    ],
-    "defaultValue": "1"
-  },
-  {
     "property": "mod.zenhush.fade_duration",
     "label": "Fade speed",
     "type": "dropdown",

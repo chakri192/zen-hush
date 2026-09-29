@@ -14,30 +14,17 @@ async function getSettings() {
   return { ...DEFAULTS, ...stored };
 }
 
-// Handles overnight ranges (e.g. 22:00 -> 07:00) as well as same-day ranges.
-function isWithinDnd(start, end) {
-  if (start === end) return false;
-
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  const startMins = sh * 60 + sm;
-  const endMins = eh * 60 + em;
-
-  const now = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-
-  if (startMins < endMins) {
-    return nowMins >= startMins && nowMins < endMins;
-  }
-  return nowMins >= startMins || nowMins < endMins;
-}
-
 browser.runtime.onMessage.addListener(async (msg) => {
   if (msg?.type === "zen-hush-get-rules") {
+    // The page checks the time itself on every notification (see inject.js),
+    // so it gets the schedule rather than a yes/no answer that would go stale.
     const s = await getSettings();
-    const dndActive = s.dndEnabled && isWithinDnd(s.dndStart, s.dndEnd);
-    const muted = s.mutedSites.includes(msg.host);
-    return { dndActive, muted };
+    return {
+      dndEnabled: s.dndEnabled,
+      dndStart: s.dndStart,
+      dndEnd: s.dndEnd,
+      muted: s.mutedSites.includes(msg.host),
+    };
   }
 
   if (msg?.type === "zen-hush-mute-site") {

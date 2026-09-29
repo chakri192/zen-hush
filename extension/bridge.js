@@ -3,15 +3,21 @@
 // This script runs in the extension's isolated world, has full API access,
 // and relays messages between the two via window.postMessage.
 
-window.addEventListener("message", async (event) => {
+async function sendRules() {
+  const rules = await browser.runtime.sendMessage({
+    type: "zen-hush-get-rules",
+    host: location.hostname,
+  });
+  window.postMessage({ channel: "zen-hush", type: "rules", rules }, "*");
+}
+
+window.addEventListener("message", (event) => {
   if (event.source !== window) return;
   if (event.data?.channel !== "zen-hush") return;
+  if (event.data.type === "request-rules") sendRules();
+});
 
-  if (event.data.type === "request-rules") {
-    const rules = await browser.runtime.sendMessage({
-      type: "zen-hush-get-rules",
-      host: location.hostname,
-    });
-    window.postMessage({ channel: "zen-hush", type: "rules", rules }, "*");
-  }
+// Muting a site or changing the schedule takes effect in open tabs at once.
+browser.storage.onChanged.addListener((_changes, area) => {
+  if (area === "local") sendRules();
 });
